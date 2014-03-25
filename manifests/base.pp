@@ -27,7 +27,7 @@ define dodrupal::base (
   # install directory
   $target_dir = '/var/www/html',
   
-  # don't monitor by default, because site content will change for most people
+  # don't monitor by default
   $monitor = false,
 
   # end of class arguments

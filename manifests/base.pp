@@ -12,7 +12,7 @@ define dodrupal::base (
   $admin_user = 'admin',
   $admin_email = 'root@localhost',
   $admin_password = 'admLn**',
-  $version = 'drupal-7',
+  $app_name = 'drupal-7',
   $vhost_seq = '00',
 
   # database connection values
@@ -25,7 +25,7 @@ define dodrupal::base (
   $db_grants = ['all'],
 
   # install directory
-  $target_dir = '/var/www/html',
+  $target_path = '/var/www/html',
   
   # don't monitor by default
   $monitor = false,
@@ -36,8 +36,8 @@ define dodrupal::base (
 
 ) {
   # configure database name
-  $db_name = "${db_name_prepend}-${version}"
-  $db_user = "${db_user_prepend}-${version}"
+  $db_name = "${db_name_prepend}-${app_name}"
+  $db_user = "${db_user_prepend}-${app_name}"
 
   # monitor if turned on
   if ($monitor) {
@@ -48,36 +48,36 @@ define dodrupal::base (
 
   # only install drupal if not already there
   dodrupal::drush { "install-drupal-${title}":
-    command => "dl ${version} -q --drupal-project-rename='${version}'",
-    cwd => "${target_dir}/",
+    command => "dl ${app_name} -q --drupal-project-rename='${title}'",
+    cwd => "${target_path}/",
     cwd_check => false,
     user => $user,
     group => $group,
-    require => Docommon::Stickydir["${target_dir}"],
-    creates => "${target_dir}/${version}/.htaccess",
+    require => Docommon::Stickydir["${target_path}"],
+    creates => "${target_path}/${title}/.htaccess",
   }->
   
   # always update the existing install, even if redundant
   dodrupal::drush { "update-drupal-${title}":
     command => 'up -y -q --no-backup',
-    cwd => "${target_dir}/${version}",
+    cwd => "${target_path}/${title}",
     cwd_check => false,
     user => $user,
     group => $group,
-    onlyif => "test -f ${target_dir}/${version}/sites/default/settings.php"
+    onlyif => "test -f ${target_path}/${title}/sites/default/settings.php"
   }
 
   # create symlink from our home folder
-  file { "/home/${user}/${version}":
+  file { "/home/${user}/${app_name}":
     ensure => 'link',
-    target => "${target_dir}/${version}",
+    target => "${target_path}/${title}",
     require => Dodrupal::Drush["install-drupal-${title}"],
   }
 
   # setup vhost from template as root:root
   include 'apache::params'
   file { "dodrupal-vhost-conf-${title}" :
-    path => "${apache::params::vhost_dir}/vhost-${vhost_seq}-${version}.conf",
+    path => "${apache::params::vhost_dir}/vhost-${vhost_seq}-${app_name}.conf",
     content => template('dodrupal/vhosts-dodrupal.conf.erb'),
   }->
   exec { "dodrupal-vhosts-refresh-apache-${title}":
@@ -91,7 +91,7 @@ define dodrupal::base (
     ubuntu, debian: {
       exec { "dodrupal-vhost-conf-a2ensite-${title}" :
         path => '/bin:/usr/bin:/sbin:/usr/sbin',
-        command => "a2ensite vhost-${vhost_seq}-${version}.conf",
+        command => "a2ensite vhost-${vhost_seq}-${app_name}.conf",
         before => [Exec["dodrupal-vhosts-refresh-apache-${title}"]],
         require => [File["dodrupal-vhost-conf-${title}"]],
       }
@@ -105,7 +105,7 @@ define dodrupal::base (
     mode => 6660,
     groupfacl => 'rwx',
     recurse => true,
-    filename => "${target_dir}/${version}/sites/default/files",
+    filename => "${target_path}/${title}/sites/default/files",
     require => [File['/var/www/git/github.com'], Dodrupal::Drush["install-drupal-${title}"]],
   }
 
@@ -124,7 +124,7 @@ define dodrupal::base (
   dodrupal::drush { "install-site-and-admin-user-${title}":
     command =>
       "site-install --yes  --site-name=\"${site_name}\" --db-url=${db_url} --account-name=${admin_user} --account-pass=${admin_password}",
-    cwd => "${target_dir}/${version}",
+    cwd => "${target_path}/${title}",
     user => $user,
     group => $group,
     # don't build if we find an existing database, indicated by a 'node' table

@@ -102,11 +102,17 @@ define dodrupal::base (
   docommon::stickydir { "dodrupal-writeable-files-${title}" :
     user => $user,
     group => $group,
-    mode => 6660,
+    mode => 660,
+    dirmode => 2770,
     groupfacl => 'rwx',
     recurse => true,
     filename => "${target_path}/${title}/sites/default/files",
     require => [File['/var/www/git/github.com'], Dodrupal::Drush["install-drupal-${title}"]],
+  }->
+  dodrupal::tmpfiles {
+   ["${target_path}/${title}/sites/default/files",
+    '/tmp']:
+    user => $user,
   }
 
   # create a mysql database for Drupal, then always install a fresh DB and setup the admin user

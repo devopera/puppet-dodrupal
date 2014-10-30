@@ -32,7 +32,7 @@ class dodrupal (
   # install drush
   pear::package { 'drush':
     repository => "pear.drush.org",
-    require => Pear::Package['PEAR'],
+    require => Class['pear'],
   }
 
   # use first run as root to get dependencies

@@ -26,7 +26,7 @@ define dodrupal::base (
 
   # install directory
   $target_path = '/var/www/html',
-  
+
   # don't monitor by default
   $monitor = false,
 
@@ -35,9 +35,10 @@ define dodrupal::base (
   # begin class
 
 ) {
-  # configure database name
-  $db_name = "${db_name_prepend}-${app_name}"
-  $db_user = "${db_user_prepend}-${app_name}"
+  # configure database name, without dashes
+  $app_name_safe = regsubst($app_name, '-', '_')
+  $db_name = "${db_name_prepend}_${app_name_safe}"
+  $db_user = "${db_user_prepend}_${app_name_safe}"
 
   # monitor if turned on
   if ($monitor) {

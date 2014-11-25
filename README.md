@@ -6,6 +6,10 @@ Drupal and Drush installation and configuration module
 Changlog
 --------
 
+2014-11-25
+
+  * Adapted DB name and username to accommodate more stringent naming in MySQL
+
 Usage
 -----
 

@@ -6,9 +6,9 @@ class dodrupal (
 
   $user = 'web',
 
-  $version = 'live',
-  # live - install latest from PEAR
-  # <version number> - install drush-<X.X.X> from PEAR 
+  $version = 'master',
+  # DEPRECATED live - install latest from PEAR
+  # DEPRECATED <version number> - install drush-<X.X.X> from PEAR 
   # master - install latest (master branch) from repo
   # e.g.
   # $version = 'drush-6.1.0.0',
@@ -30,34 +30,46 @@ class dodrupal (
   #pear::package { "Console_Table": }
 
   # install drush
-  pear::package { 'drush':
-    repository => "pear.drush.org",
-    require => Class['pear'],
-  }
+
+  # doesn't work with CentOS
+  #class { 'drush':
+  #  ensure => latest,
+  #}
+
+  #class { 'drush::git::drush':
+  #  update => true,
+  #}->
+  #anchor { 'drush-installed' : }
+
+  # PEAR channel deprecated
+  #pear::package { 'drush':
+  #  repository => "pear.drush.org",
+  #  require => Class['pear'],
+  #}
 
   # use first run as root to get dependencies
-  exec { 'drush-first-run' :
-    path => "/usr/bin:/bin:${target_bin}",
-    command => 'drush --version',
-    user => 'root',
-    require => Pear::Package['drush'],
-  }->
+  #exec { 'drush-first-run' :
+  #  path => "/usr/bin:/bin:${target_bin}",
+  #  command => 'drush --version',
+  #  user => 'root',
+  #  require => [Anchor['drush-installed']],
+  #}->
   # scrub drush cache
-  exec { 'drush-clear-tmp-drush' :
-    path => '/usr/bin:/bin',
-    command => 'rm -rf /tmp/drush*',
-  }->  
+  #exec { 'drush-clear-tmp-drush' :
+  #  path => '/usr/bin:/bin',
+  #  command => 'rm -rf /tmp/drush*',
+  #}->  
   # second run as web user to setup /tmp/drush folders with correct user
-  exec { 'drush-second-run' :
-    path => "/usr/bin:/bin:${target_bin}",
-    command => 'drush --version',
-    user => $user,
-  }
+  #exec { 'drush-second-run' :
+  #  path => "/usr/bin:/bin:${target_bin}",
+  #  command => 'drush --version',
+  #  user => $user,
+  #}
 
   case $version {
-    'live' : {
-      # just use whatever version comes out of the drush PEAR channel
-    }
+    #'live' : {
+    #  # just use whatever version comes out of the drush PEAR channel
+    #}
     'master' : {
       # checkout repo and install manually
       dorepos::getrepo { 'drush' :
@@ -68,8 +80,6 @@ class dodrupal (
         branch => 'master',
         source => 'https://github.com/drush-ops/drush.git',
         symlinkdir => "/home/${user}/",
-        # wait until the PEAR runs are truly finished, in case we delete drush while it's being used
-        require => Exec['drush-second-run'],
       }->
 
       # make drush executable
@@ -92,14 +102,14 @@ class dodrupal (
     }
     default :  {
       # for everything else try and force an upgrade to specified version
-      exec { 'drush-upgrade-to-version' :
-        path => "/usr/bin:/bin:${target_bin}",
-        # redirect output to /dev/null because otherwise 'already installed' warning treated as puppet error
-        command => "pear install drush/${version}",
-        require => Exec['drush-first-run'],
-        # only run the install command if we're not already got this version
-        onlyif => "test ! `drush --version | grep -e '^\$' -e '${version_match}' -v | wc -l` == 0",
-      }
+      # PEAR channel deprecated
+      #exec { 'drush-upgrade-to-version' :
+      #  path => "/usr/bin:/bin:${target_bin}",
+      #  # redirect output to /dev/null because otherwise 'already installed' warning treated as puppet error
+      #  command => "pear install drush/${version}",
+      #  require => Exec['drush-first-run'],
+      #  # only run the install command if we're not already got this version
+      #  onlyif => "test ! `drush --version | grep -e '^\$' -e '${version_match}' -v | wc -l` == 0",
     }
   }
 
